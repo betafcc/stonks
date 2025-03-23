@@ -3,7 +3,7 @@
  * Based on https://developers.binance.com/docs/binance-spot-api-docs/README
  */
 
-import qs from 'node:querystring'
+import qs from 'qs'
 
 import { webSocket } from 'rxjs/webSocket'
 import { retry } from 'rxjs/operators'
