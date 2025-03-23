@@ -1,6 +1,6 @@
 {
   "name": "common",
-  "module": "index.ts",
+  "module": "binance.ts",
   "type": "module",
   "devDependencies": {
     "@types/bun": "latest"
