@@ -11,9 +11,10 @@ import { SidePanel } from '@/components/ui/side-panel'
 import { LiveTicker } from '@/components/ui/live-ticker'
 import { LiveChartPanel } from '@/components/ui/live-chart-panel'
 import { Timer } from '@/components/ui/timer'
+import { Panel } from '@/hooks/app'
 
 export default function Page() {
-  const [activeSidebar, setActiveSidebar] = useState<string | null>(null)
+  const [activeSidebar, setActiveSidebar] = useState<Panel>()
   const isMobile = useMediaQuery('(max-width: 768px)')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
@@ -40,11 +41,14 @@ export default function Page() {
       </header>
 
       <div className="flex flex-1">
-        <NavBar selected={activeSidebar} onSelect={setActiveSidebar} />
+        <NavBar
+          selected={activeSidebar}
+          onSelect={setActiveSidebar}
+        />
         <SidePanel
           className="fixed left-20 bottom-8 top-16"
           selected={activeSidebar}
-          onClose={() => setActiveSidebar(null)}
+          onClose={() => setActiveSidebar(undefined)}
         />
         <div className="flex-1 p-2 w-40">
           <LiveChartPanel
