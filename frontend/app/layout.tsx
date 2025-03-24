@@ -5,6 +5,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 
 import { ThemeProvider } from '@/components/theme-provider'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -19,11 +20,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'Stonks!',
   description: 'Stonks is a game ....', // TODO
-  keywords: [
-    'bitcoin',
-    'trading option',
-    'stonks',
-  ],
+  keywords: ['bitcoin', 'trading option', 'stonks'],
   // metadataBase: new URL('https://baseconverter.net'),
   // openGraph: {
   //   title: 'BaseConverter.net: Convert Binary, Hex, Decimal, and More',
@@ -66,14 +63,16 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased touch-manipulation`}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <Suspense fallback={'loading'}>{children}</Suspense>
-        </ThemeProvider>
+        <GoogleOAuthProvider clientId="889997800293-fikcmtjenq3m21uvi2unsdsmd8pujgkn.apps.googleusercontent.com">
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <Suspense fallback={'loading'}>{children}</Suspense>
+          </ThemeProvider>
+        </GoogleOAuthProvider>
       </body>
     </html>
   )

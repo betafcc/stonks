@@ -1,12 +1,7 @@
 import { useEffect, useReducer, useRef } from 'react'
+import type { RouterOutputs } from '../../backend/router'
 
-export type User = {
-  id: number
-  email: string
-  name: string
-  score: number
-  picture: string
-}
+export type User = NonNullable<RouterOutputs['getUserById']>
 
 export type Direction = 'up' | 'down'
 
@@ -45,6 +40,7 @@ export const initial: State = {
 
 export type Event =
   | { type: 'logged-in'; user: User }
+  | { type: 'logged-out' }
   | { type: 'requested-bet' }
   | { type: 'got-bet'; bet: Bet }
   | { type: 'got-result'; bet: Bet }
@@ -57,6 +53,8 @@ export const reducer = (state: State, event: Event): State => {
   switch (event.type) {
     case 'logged-in':
       return { ...state, user: event.user }
+    case 'logged-out':
+      return { ...state, user: undefined }
     case 'requested-bet':
       return { ...state, game: { type: 'waiting-bet' } }
     case 'got-bet':
@@ -79,24 +77,32 @@ export const reducer = (state: State, event: Event): State => {
 }
 
 export type Api = {
-  createBet: {
+  // createBet: {
+  //   mutate: (input: {
+  //     symbol: string
+  //     direction: Direction
+  //     timestamp: number
+  //   }) => Promise<Bet>
+  // }
+
+  // getRank: {
+  //   query: () => Promise<User[]>
+  // }
+
+  // getHistory: {
+  //   query: (userId: number) => Promise<Bet[]>
+  // }
+
+  // getLastBet: {
+  //   query: (userId: number) => Promise<Bet>
+  // }
+  login: {
     mutate: (input: {
-      symbol: string
-      direction: Direction
-      timestamp: number
-    }) => Promise<Bet>
+      credential: string
+    }) => Promise<{ token: string; user: User }>
   }
-
-  getRank: {
-    query: () => Promise<User[]>
-  }
-
-  getHistory: {
-    query: (userId: number) => Promise<Bet[]>
-  }
-
-  getLastBet: {
-    query: (userId: number) => Promise<Bet>
+  getUser: {
+    query: () => Promise<User>
   }
 }
 
@@ -106,53 +112,65 @@ export const makeUseApp = (api: Api) => (initialState?: Partial<State>) => {
   // rerender avoiding evil trick
   stateRef.current = state
   const command = useRef({
-    login: (user: User) => {
-      // prefetch history
-      api.getHistory
-        .query(user.id)
-        .then(history => dispatch({ type: 'got-history', history }))
-
-      api.getLastBet.query(user.id).then(bet => {
-        // check if last bet still open
-        if (bet && bet.final === null) dispatch({ type: 'got-bet', bet })
-        dispatch({ type: 'logged-in', user })
-      })
+    login: async (credential: string) => {
+      const { token, user } = await api.login.mutate({ credential })
+      localStorage.setItem('token', token)
+      dispatch({ type: 'logged-in', user })
+      // // prefetch history
+      // api.getHistory
+      //   .query(user.id)
+      //   .then(history => dispatch({ type: 'got-history', history }))
+      // api.getLastBet.query(user.id).then(bet => {
+      //   // check if last bet still open
+      //   if (bet && bet.final === null) dispatch({ type: 'got-bet', bet })
+      //   dispatch({ type: 'logged-in', user })
+      // })
     },
-    createBet: async (symbol: string, direction: Direction) => {
-      dispatch({ type: 'requested-bet' })
-
-      const bet = await api.createBet.mutate({
-        symbol,
-        direction,
-        timestamp: Date.now(),
-      })
-
-      dispatch({ type: 'got-bet', bet })
+    logout: () => {
+      localStorage.removeItem('token')
+      dispatch({ type: 'logged-out' })
     },
+    // createBet: async (symbol: string, direction: Direction) => {
+    //   dispatch({ type: 'requested-bet' })
+
+    //   const bet = await api.createBet.mutate({
+    //     symbol,
+    //     direction,
+    //     timestamp: Date.now(),
+    //   })
+
+    //   dispatch({ type: 'got-bet', bet })
+    // },
 
     closePanel: () => dispatch({ type: 'closed-panel' }),
     selectPanel: (panel: Panel) => {
-      switch (panel) {
-        case 'rank': {
-          api.getRank.query().then(rank => dispatch({ type: 'got-rank', rank }))
-          break
-        }
-        case 'history': {
-          if (stateRef.current.user)
-            api.getHistory
-              .query(stateRef.current.user.id)
-              .then(history => dispatch({ type: 'got-history', history }))
-          break
-        }
-      }
+      // switch (panel) {
+      //   case 'rank': {
+      //     api.getRank.query().then(rank => dispatch({ type: 'got-rank', rank }))
+      //     break
+      //   }
+      //   case 'history': {
+      //     if (stateRef.current.user)
+      //       api.getHistory
+      //         .query(stateRef.current.user.id)
+      //         .then(history => dispatch({ type: 'got-history', history }))
+      //     break
+      //   }
+      // }
       dispatch({ type: 'selected-panel', panel })
     },
   })
 
   useEffect(() => {
-    api.getRank.query().then(rank => {
-      dispatch({ type: 'got-rank', rank })
-    })
+    const token = localStorage.getItem('token')
+
+    if (token) {
+      api.getUser.query().then(user => dispatch({ type: 'logged-in', user }))
+    }
+
+    //   api.getRank.query().then(rank => {
+    //     dispatch({ type: 'got-rank', rank })
+    //   })
   }, [])
 
   return [stateRef.current, command.current] as const

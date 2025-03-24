@@ -1,7 +1,8 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import { Menu, TrendingDown, TrendingUp } from 'lucide-react'
+import { LogOut, Menu, TrendingDown, TrendingUp } from 'lucide-react'
+import { GoogleLogin } from '@react-oauth/google'
 
 import { Button } from '@/components/ui/button'
 import { useMediaQuery } from '@/hooks/use-mobile'
@@ -11,9 +12,15 @@ import { SidePanel } from '@/components/ui/side-panel'
 import { LiveTicker } from '@/components/ui/live-ticker'
 import { LiveChartPanel } from '@/components/ui/live-chart-panel'
 import { Timer } from '@/components/ui/timer'
-import { Panel } from '@/hooks/app'
+import { makeUseApp, Panel } from '@/hooks/app'
+import { api } from '@/lib/api'
+import { Separator } from '@/components/ui/separator'
+import Image from 'next/image'
+
+const useApp = makeUseApp(api)
 
 export default function Page() {
+  const [state, command] = useApp()
   const [activeSidebar, setActiveSidebar] = useState<Panel>()
   const isMobile = useMediaQuery('(max-width: 768px)')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -35,16 +42,67 @@ export default function Page() {
           <h1 className="text-xl font-semibold">STONKS!</h1>
         </div>
         <div className="flex gap-2">
-          <ModeToggle />
-          <Button>Login</Button>
+          {state.user && (
+            <>
+              {state.user.picture && (
+                <Image
+                  alt="Picture"
+                  src={state.user.picture}
+                  width="40"
+                  height="40"
+                  className="rounded-full border-1"
+                />
+              )}
+
+              <div className="flex flex-col h-full pr-2 text-sm">
+                <div className="font-bold">
+                  {state.user.email.split('@')[0]}
+                </div>
+                <div className="text-left">
+                  Score:{' '}
+                  <span className="font-mono text-right">
+                    {state.user.score}
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
+          {state.user ? (
+            <Button
+              variant="outline"
+              className="cursor-pointer h-10 w-10 rounded-sm"
+              aria-label="Log out"
+              title="Log out"
+              onClick={command.logout}
+            >
+              <LogOut className="h-5 w-5" />
+              <span className="sr-only">Logout</span>
+            </Button>
+          ) : (
+            <div className="[&_div]:bg-background [&_div]:text-foreground">
+              <GoogleLogin
+                size="large"
+                text="signin"
+                onSuccess={async credentialResponse =>
+                  command.login(credentialResponse.credential!)
+                }
+                onError={() => {
+                  console.log('Login Failed')
+                }}
+              />
+            </div>
+          )}
+          <Separator orientation="vertical" className="min-h-8 self-center" />
+          <ModeToggle
+            className="cursor-pointer h-10 w-10 rounded-sm"
+            aria-label="Toggle theme"
+            title="Toggle theme"
+          />
         </div>
       </header>
 
       <div className="flex flex-1">
-        <NavBar
-          selected={activeSidebar}
-          onSelect={setActiveSidebar}
-        />
+        <NavBar selected={activeSidebar} onSelect={setActiveSidebar} />
         <SidePanel
           className="fixed left-20 bottom-8 top-16"
           selected={activeSidebar}
