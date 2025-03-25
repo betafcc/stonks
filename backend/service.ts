@@ -1,7 +1,8 @@
-import { eq, sql } from 'drizzle-orm'
+import { desc, eq, sql, and, isNotNull } from 'drizzle-orm'
 import jwt from 'jsonwebtoken'
 import { OAuth2Client } from 'google-auth-library'
 
+import { fetchLastTrade, fetchFirstPriceChange } from 'common/binance'
 import { db } from './db'
 import * as schema from './db/schema'
 
@@ -53,4 +54,127 @@ export const login = async (input: { credential: string }) => {
     )
 
   return { token: generateToken(user), user }
+}
+
+// -- the leaderboard
+export const getRank = () =>
+  db.select().from(schema.users).orderBy(desc(schema.users.score))
+
+export const deleteUser = (id: number) =>
+  db.delete(schema.users).where(eq(schema.users.id, id)).execute()
+
+export const getHistory = (userId: number) =>
+  db
+    .select()
+    .from(schema.bets)
+    .where(and(eq(schema.bets.userId, userId), isNotNull(schema.bets.final)))
+    .orderBy(desc(schema.bets.initialTime))
+    .execute()
+
+export const getLastBet = (userId: number) =>
+  db
+    .select()
+    .from(schema.bets)
+    .where(eq(schema.bets.userId, userId))
+    .orderBy(desc(schema.bets.initialTime))
+    .limit(1)
+    .execute()
+    .then(r => r.at(0))
+
+export const createBet = async (
+  input: Pick<
+    typeof schema.bets.$inferInsert,
+    'symbol' | 'direction' | 'userId'
+  > & {
+    userTime: number
+  },
+) => {
+  // fetch last trade asap to reduce latency
+  const [trade, lastBet] = await Promise.all([
+    fetchLastTrade(input.symbol),
+    getLastBet(input.userId),
+  ])
+
+  if (lastBet?.final === null) throw Error('You have an open bet, sit down')
+
+  // optionally reject if too much latency
+  // if ((trade.T - input.userTime) > 1000)
+  //   throw Error('Too much latency')
+
+  return await db
+    .insert(schema.bets)
+    .values({
+      userId: input.userId,
+      symbol: input.symbol,
+      direction: input.direction,
+      initial: +trade.p,
+      initialTime: new Date(trade.T),
+    })
+    .returning()
+    .then(r => r[0])
+}
+
+export const retrieveBetResult = async (input: {
+  id: number
+  userId: number
+}) => {
+  // find the bet
+  const bets = await db
+    .select()
+    .from(schema.bets)
+    .where(
+      and(eq(schema.bets.id, input.id), eq(schema.bets.userId, input.userId)),
+    )
+
+  // if no bet found, throw
+  // TODO: trpc 404
+  if (bets.length === 0) throw Error('Bet not found')
+
+  const bet = bets[0]
+  // check if bet is already finished, if so, just return it
+  if (bet.final !== null) return bet
+
+  // check if at least 60 seconds has passed
+  const now = Date.now()
+  const initialTime = +bet.initialTime
+  const minFinalTime = initialTime + 60 * 1000
+
+  if (now < minFinalTime) throw Error('Too early')
+
+  const price = await fetchFirstPriceChange({
+    symbol: bet.symbol,
+    value: bet.initial,
+    timestamp: bet.initial,
+  })
+
+  // TODO: wrap rest in transaction
+  // update bet on db
+  const finalBet = await db
+    .update(schema.bets)
+    .set({ final: price.value, finalTime: new Date(price.timestamp) })
+    .where(eq(schema.bets.id, bet.id))
+    .returning()
+    .then(r => r[0])
+
+  // update user score
+  // await db
+  // .update(table)
+  // .set({
+  //   counter: sql`${table.counter} + 1`,
+  // })
+  // .where(eq(table.id, 1));
+  const isCorrect =
+    (finalBet.final! > finalBet.initial && finalBet.direction === 'up') ||
+    (finalBet.final! < finalBet.initial && finalBet.direction === 'down')
+
+  await db
+    .update(schema.users)
+    .set({
+      score: isCorrect
+        ? sql`${schema.users.score} + 1`
+        : sql`${schema.users.score} - 1`,
+    })
+    .where(eq(schema.users.id, input.userId))
+
+  return finalBet
 }

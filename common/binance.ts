@@ -222,3 +222,6 @@ export const fetchFirstPriceChange = async (params: {
     // backoff: (params.backoff ?? 1000) * 2,
   })
 }
+
+export const fetchLastTrade = async (symbol: string) =>
+  await fetchAggTrades({ symbol, limit: 1 }).then(trades => trades[0])

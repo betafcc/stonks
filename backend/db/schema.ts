@@ -39,10 +39,14 @@ export const bets = pgTable('bets', {
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   symbol: varchar('symbol', { length: 64 }).notNull(),
-  direction: directionEnum('direction'),
-  initial: numeric('initial', { precision: 20, scale: 2 }).notNull(),
+  direction: directionEnum('direction').notNull(),
+  initial: numeric('initial', {
+    precision: 12,
+    scale: 2,
+    mode: 'number',
+  }).notNull(),
   initialTime: timestamp('initial_time').notNull(), // no default
-  final: numeric('final', { precision: 20, scale: 2 }),
+  final: numeric('final', { precision: 12, scale: 2, mode: 'number' }),
   finalTime: timestamp('final_time'),
 })
 
