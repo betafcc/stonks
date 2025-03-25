@@ -1,35 +1,28 @@
 'use client'
 
-import { useCallback, useState } from 'react'
-import { LogOut, Menu, TrendingDown, TrendingUp } from 'lucide-react'
+import { useCallback } from 'react'
+import { LogOut, TrendingDown, TrendingUp } from 'lucide-react'
 import { GoogleLogin } from '@react-oauth/google'
 
 import { Button } from '@/components/ui/button'
-import { useMediaQuery } from '@/hooks/use-mobile'
 import { ModeToggle } from '@/components/ui/mode-toggle'
 import { NavBar } from '@/components/ui/nav-bar'
 import { SidePanel } from '@/components/ui/side-panel'
 import { LiveTicker } from '@/components/ui/live-ticker'
 import { LiveChartPanel } from '@/components/ui/live-chart-panel'
 import { Timer } from '@/components/ui/timer'
-import { makeUseApp, Panel } from '@/hooks/app'
-import { api } from '@/lib/api'
+import { useApp } from '@/hooks/app'
 import { Separator } from '@/components/ui/separator'
 import Image from 'next/image'
 
-const useApp = makeUseApp(api)
-
 export default function Page() {
   const [state, command] = useApp()
-  const [activeSidebar, setActiveSidebar] = useState<Panel>()
-  const isMobile = useMediaQuery('(max-width: 768px)')
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (
     <div className="flex min-h-screen flex-col">
       <header className="flex h-16 items-center justify-between border-b px-4 md:px-6">
         <div className="flex items-center gap-2">
-          {isMobile && (
+          {/* {isMobile && (
             <Button
               variant="ghost"
               size="icon"
@@ -38,7 +31,7 @@ export default function Page() {
               <Menu className="h-5 w-5" />
               <span className="sr-only">Toggle menu</span>
             </Button>
-          )}
+          )} */}
           <h1 className="text-xl font-semibold">STONKS!</h1>
         </div>
         <div className="flex gap-2">
@@ -102,11 +95,11 @@ export default function Page() {
       </header>
 
       <div className="flex flex-1">
-        <NavBar selected={activeSidebar} onSelect={setActiveSidebar} />
+        <NavBar selected={state.panel} onSelect={command.selectPanel} />
         <SidePanel
           className="fixed left-20 bottom-8 top-16"
-          selected={activeSidebar}
-          onClose={() => setActiveSidebar(undefined)}
+          selected={state.panel}
+          onClose={command.closePanel}
         />
         <div className="flex-1 p-2 w-40">
           <LiveChartPanel

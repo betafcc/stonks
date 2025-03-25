@@ -1,19 +1,11 @@
 import { useEffect, useReducer, useRef } from 'react'
 import type { RouterOutputs } from '../../backend/router'
+import { api } from '@/lib/api'
 
 export type User = NonNullable<RouterOutputs['getUserById']>
+export type Bet = NonNullable<RouterOutputs['getActiveBet']>
 
 export type Direction = 'up' | 'down'
-
-export type Bet = {
-  id: number
-  symbol: string
-  direction: Direction
-  initial: number
-  initialTime: number
-  final: number | null
-  finalTime: number | null
-}
 
 export type Panel = 'profile' | 'history' | 'rank'
 
@@ -23,19 +15,21 @@ export type GameState =
   | { type: 'waiting-result'; bet: Bet }
 
 export type State = {
-  user?: User
-  panel?: Panel
+  user: User | null
+  panel: Panel | null
   game: GameState
   symbol: string
-  history: Bet[]
-  rank: User[]
+  history: Bet[] | null
+  rank: User[] | null
 }
 
 export const initial: State = {
+  user: null,
+  panel: null,
   game: { type: 'idle' },
   symbol: 'BTCUSDT',
-  history: [],
-  rank: [],
+  history: null,
+  rank: null,
 }
 
 export type Event =
@@ -54,123 +48,147 @@ export const reducer = (state: State, event: Event): State => {
     case 'logged-in':
       return { ...state, user: event.user }
     case 'logged-out':
-      return { ...state, user: undefined }
+      return { ...state, user: null }
     case 'requested-bet':
       return { ...state, game: { type: 'waiting-bet' } }
     case 'got-bet':
       return { ...state, game: { type: 'waiting-result', bet: event.bet } }
-    case 'got-result':
+    case 'got-result': {
+      const finalBet = event.bet
+      const isCorrect =
+        (finalBet.final! > finalBet.initial && finalBet.direction === 'up') ||
+        (finalBet.final! < finalBet.initial && finalBet.direction === 'down')
+
       return {
         ...state,
+        user: {
+          ...state.user!,
+          score: isCorrect ? state.user!.score + 1 : state.user!.score - 1,
+        },
         game: { type: 'idle' },
-        history: [...state.history, event.bet],
+        history: [...(state.history ?? []), event.bet],
       }
+    }
     case 'got-history':
       return { ...state, history: event.history }
     case 'got-rank':
       return { ...state, rank: event.rank }
     case 'closed-panel':
-      return { ...state, panel: undefined }
+      return { ...state, panel: null }
     case 'selected-panel':
       return { ...state, panel: event.panel }
   }
 }
 
-export type Api = {
-  // createBet: {
-  //   mutate: (input: {
-  //     symbol: string
-  //     direction: Direction
-  //     timestamp: number
-  //   }) => Promise<Bet>
-  // }
-
-  // getRank: {
-  //   query: () => Promise<User[]>
-  // }
-
-  // getHistory: {
-  //   query: (userId: number) => Promise<Bet[]>
-  // }
-
-  // getLastBet: {
-  //   query: (userId: number) => Promise<Bet>
-  // }
-  login: {
-    mutate: (input: {
-      credential: string
-    }) => Promise<{ token: string; user: User }>
-  }
-  getUser: {
-    query: () => Promise<User>
-  }
-}
-
-export const makeUseApp = (api: Api) => (initialState?: Partial<State>) => {
+export const useApp = (initialState?: Partial<State>) => {
   const [state, dispatch] = useReducer(reducer, { ...initial, ...initialState })
   const stateRef = useRef(state)
   // rerender avoiding evil trick
   stateRef.current = state
   const command = useRef({
     login: async (credential: string) => {
-      const { token, user } = await api.login.mutate({ credential })
+      const { token, user, activeBet } = await api.login.mutate({ credential })
       localStorage.setItem('token', token)
       dispatch({ type: 'logged-in', user })
-      // // prefetch history
-      // api.getHistory
-      //   .query(user.id)
-      //   .then(history => dispatch({ type: 'got-history', history }))
-      // api.getLastBet.query(user.id).then(bet => {
-      //   // check if last bet still open
-      //   if (bet && bet.final === null) dispatch({ type: 'got-bet', bet })
-      //   dispatch({ type: 'logged-in', user })
-      // })
+
+      if (activeBet) {
+        dispatch({ type: 'got-bet', bet: activeBet })
+
+        if (+new Date(activeBet.initialTime) + 60 * 1000 < Date.now()) {
+          // if activeBet is already 1 minute old, request result
+          await command.current.retrieveBetResult(activeBet)
+        }
+      }
+
+      // prefetch history
+      api.getHistory
+        .query()
+        .then(history => dispatch({ type: 'got-history', history }))
+
+      // prefetch rank
+      // NOTE: fix call duplication when active bet is already 1 minute old
+      api.getRank.query().then(rank => dispatch({ type: 'got-rank', rank }))
     },
+
     logout: () => {
       localStorage.removeItem('token')
       dispatch({ type: 'logged-out' })
     },
-    // createBet: async (symbol: string, direction: Direction) => {
-    //   dispatch({ type: 'requested-bet' })
 
-    //   const bet = await api.createBet.mutate({
-    //     symbol,
-    //     direction,
-    //     timestamp: Date.now(),
-    //   })
+    createBet: async (symbol: string, direction: Direction) => {
+      dispatch({ type: 'requested-bet' })
 
-    //   dispatch({ type: 'got-bet', bet })
-    // },
+      const bet = await api.createBet.mutate({
+        symbol,
+        direction,
+        userTime: Date.now(),
+      })
+
+      dispatch({ type: 'got-bet', bet })
+    },
+
+    retrieveBetResult: async (bet: Bet) => {
+      const finalBet = await api.retrieveBetResult.mutate({ id: bet.id })
+      if (finalBet) {
+        dispatch({ type: 'got-result', bet: finalBet })
+
+        // refresh rank
+        api.getRank.query().then(rank => dispatch({ type: 'got-rank', rank }))
+      }
+    },
 
     closePanel: () => dispatch({ type: 'closed-panel' }),
+
     selectPanel: (panel: Panel) => {
-      // switch (panel) {
-      //   case 'rank': {
-      //     api.getRank.query().then(rank => dispatch({ type: 'got-rank', rank }))
-      //     break
-      //   }
-      //   case 'history': {
-      //     if (stateRef.current.user)
-      //       api.getHistory
-      //         .query(stateRef.current.user.id)
-      //         .then(history => dispatch({ type: 'got-history', history }))
-      //     break
-      //   }
-      // }
+      if (panel === stateRef.current.panel) {
+        dispatch({ type: 'closed-panel' })
+        return
+      }
+
+      switch (panel) {
+        case 'rank': {
+          api.getRank.query().then(rank => dispatch({ type: 'got-rank', rank }))
+          break
+        }
+        case 'history': {
+          if (stateRef.current.user)
+            api.getHistory
+              .query()
+              .then(history => dispatch({ type: 'got-history', history }))
+          break
+        }
+      }
+
       dispatch({ type: 'selected-panel', panel })
     },
   })
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
+    if (localStorage.getItem('token')) {
+      ;(async () => {
+        // TODO: refactor to a `init` function
+        api.getUser.query().then(user => dispatch({ type: 'logged-in', user }))
+        const activeBet = await api.getActiveBet.query()
 
-    if (token) {
-      api.getUser.query().then(user => dispatch({ type: 'logged-in', user }))
+        if (activeBet) {
+          dispatch({ type: 'got-bet', bet: activeBet })
+
+          if (+new Date(activeBet.initialTime) + 60 * 1000 < Date.now()) {
+            // if activeBet is already 1 minute old, request result
+            await command.current.retrieveBetResult(activeBet)
+          }
+        }
+
+        // prefetch history
+        api.getHistory
+          .query()
+          .then(history => dispatch({ type: 'got-history', history }))
+
+        // prefetch rank
+        // NOTE: fix call duplication when active bet is already 1 minute old
+        api.getRank.query().then(rank => dispatch({ type: 'got-rank', rank }))
+      })()
     }
-
-    //   api.getRank.query().then(rank => {
-    //     dispatch({ type: 'got-rank', rank })
-    //   })
   }, [])
 
   return [stateRef.current, command.current] as const

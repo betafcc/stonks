@@ -1,4 +1,4 @@
-import { desc, eq, sql, and, isNotNull } from 'drizzle-orm'
+import { desc, eq, sql, and, isNotNull, isNull } from 'drizzle-orm'
 import jwt from 'jsonwebtoken'
 import { OAuth2Client } from 'google-auth-library'
 
@@ -53,8 +53,20 @@ export const login = async (input: { credential: string }) => {
           }),
     )
 
-  return { token: generateToken(user), user }
+  return {
+    token: generateToken(user),
+    user,
+    activeBet: await getActiveBet(user.id),
+  }
 }
+
+export const getActiveBet = (userId: number) =>
+  db.query.bets
+    .findFirst({
+      where: bet => and(eq(bet.userId, userId), isNull(bet.final)),
+    })
+    .execute()
+    .then(r => r ?? null)
 
 // -- the leaderboard
 export const getRank = () =>
@@ -157,12 +169,6 @@ export const retrieveBetResult = async (input: {
     .then(r => r[0])
 
   // update user score
-  // await db
-  // .update(table)
-  // .set({
-  //   counter: sql`${table.counter} + 1`,
-  // })
-  // .where(eq(table.id, 1));
   const isCorrect =
     (finalBet.final! > finalBet.initial && finalBet.direction === 'up') ||
     (finalBet.final! < finalBet.initial && finalBet.direction === 'down')

@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
 // TODO: use css vars to keep header/footer size in sync
 export const SidePanel: FC<
   {
-    selected?: Panel
+    selected?: Panel | null
     onClose?: () => void
   } & Omit<ComponentProps<'div'>, 'selected' | 'onClose'>
 > = ({ selected, onClose, className, ...props }) =>

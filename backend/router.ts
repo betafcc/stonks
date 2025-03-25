@@ -14,14 +14,19 @@ export type RouterOutputs = inferRouterOutputs<Router>
 const t = initTRPC.context<Context>().create()
 
 export const router = t.router({
-  helloWorld: t.procedure.query(() => 'hello world!'),
   login: t.procedure
     .input(z.object({ credential: z.string() }))
-    .mutation(({ input }) => service.login(input)),
+    .mutation(({ input, ctx: { user } }) => service.login(input)),
 
   getUser: t.procedure.query(({ ctx: { user } }) => {
+    // TODO: create user procedure instead of handling on resolvers
     if (!user) throw new TRPCError({ code: 'UNAUTHORIZED' })
     return user
+  }),
+
+  getActiveBet: t.procedure.query(({ ctx: { user } }) => {
+    if (!user) throw new TRPCError({ code: 'UNAUTHORIZED' })
+    return service.getActiveBet(user.id)
   }),
 
   getUserById: t.procedure
