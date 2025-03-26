@@ -205,6 +205,8 @@ export const fetchFirstPriceChange = async (params: {
   if (trades.length === 0)
     throw new Error('no trades found for the given timestamp')
 
+  // console.log({ params, trades })
+
   const firstChange = trades.find(t => +t.p !== params.value)
 
   if (firstChange)

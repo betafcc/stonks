@@ -1,6 +1,8 @@
 import { useEffect, useReducer, useRef } from 'react'
 import type { RouterOutputs } from '../../backend/router'
 import { api } from '@/lib/api'
+import { toast } from 'sonner'
+import { formatPrice } from '@/lib/utils'
 
 export type User = NonNullable<RouterOutputs['getUserById']>
 export type Bet = NonNullable<RouterOutputs['getActiveBet']>
@@ -43,6 +45,10 @@ export type Event =
   | { type: 'closed-panel' }
   | { type: 'selected-panel'; panel: Panel }
 
+const isBetCorrect = (bet: Bet) =>
+  (bet.final! > bet.initial && bet.direction === 'up') ||
+  (bet.final! < bet.initial && bet.direction === 'down')
+
 export const reducer = (state: State, event: Event): State => {
   switch (event.type) {
     case 'logged-in':
@@ -54,10 +60,7 @@ export const reducer = (state: State, event: Event): State => {
     case 'got-bet':
       return { ...state, game: { type: 'waiting-result', bet: event.bet } }
     case 'got-result': {
-      const finalBet = event.bet
-      const isCorrect =
-        (finalBet.final! > finalBet.initial && finalBet.direction === 'up') ||
-        (finalBet.final! < finalBet.initial && finalBet.direction === 'down')
+      const isCorrect = isBetCorrect(event.bet)
 
       return {
         ...state,
@@ -79,6 +82,8 @@ export const reducer = (state: State, event: Event): State => {
       return { ...state, panel: event.panel }
   }
 }
+
+export type Command = ReturnType<typeof useApp>[1]
 
 export const useApp = (initialState?: Partial<State>) => {
   const [state, dispatch] = useReducer(reducer, { ...initial, ...initialState })
@@ -131,6 +136,16 @@ export const useApp = (initialState?: Partial<State>) => {
       const finalBet = await api.retrieveBetResult.mutate({ id: bet.id })
       if (finalBet) {
         dispatch({ type: 'got-result', bet: finalBet })
+
+        toast(
+          isBetCorrect(finalBet)
+            ? 'You guessed right! 🎉'
+            : 'You guessed wrong 👎',
+          {
+            richColors: true,
+            description: `Your bet: ${formatPrice(finalBet.initial)} - Final price: ${formatPrice(finalBet.final!)}`,
+          },
+        )
 
         // refresh rank
         api.getRank.query().then(rank => dispatch({ type: 'got-rank', rank }))

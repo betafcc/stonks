@@ -1,12 +1,14 @@
 import jwt, { type JwtPayload } from 'jsonwebtoken'
 import * as trpcExpress from '@trpc/server/adapters/express'
 import cors from 'cors'
+import morgan from 'morgan'
 import express from 'express'
 
 import { router, type Context } from './router'
 import { getUserById } from './service'
 
 express()
+  .use(morgan('tiny'))
   .use(cors())
   .use(
     trpcExpress.createExpressMiddleware({

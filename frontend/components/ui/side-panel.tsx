@@ -29,10 +29,10 @@ export const SidePanel: FC<
       <div className="p-4">
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">
-            This is the content section.
+            To be implemented
           </p>
           <p className="text-sm text-muted-foreground">
-            You can add more content here specific to this section.
+            Lorem ipsum dolor sit amet consectetur adipisicing elit.
           </p>
         </div>
       </div>

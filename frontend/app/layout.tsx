@@ -6,6 +6,7 @@ import './globals.css'
 
 import { ThemeProvider } from '@/components/theme-provider'
 import { GoogleOAuthProvider } from '@react-oauth/google'
+import { Toaster } from '@/components/ui/sonner'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -71,6 +72,7 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <Suspense fallback={'loading'}>{children}</Suspense>
+            <Toaster />
           </ThemeProvider>
         </GoogleOAuthProvider>
       </body>
