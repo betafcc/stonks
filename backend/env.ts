@@ -1,5 +1,3 @@
-import { config } from 'dotenv'
-
 import { ZodError, z } from 'zod'
 
 // const stringBoolean = z.coerce
@@ -16,7 +14,6 @@ const EnvSchema = z.object({
 
 export type Env = z.infer<typeof EnvSchema>
 
-config()
 
 export const env: Env = (() => {
   try {

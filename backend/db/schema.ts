@@ -1,9 +1,7 @@
 import {
   pgTable,
-  uniqueIndex,
   varchar,
   serial,
-  boolean,
   timestamp,
   pgEnum,
   integer,
