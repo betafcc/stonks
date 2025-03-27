@@ -123,7 +123,7 @@ The main files to understand the logic of the app are:
 - [backend/db/schema.ts](backend/db/schema.ts) - the schema, defining `users` and `bets` models
 - [frontend/hooks/app.ts](frontend/hooks/app.ts) - the whole logic of the frontend <sup>1</sup>, in a more-or-less redux style (is more based on a 'TEA' and a bit cqrs/es inspired architecture)
 
-<sup>*</sup> To avoid some annoying re-rendering bugs encountered, a small part of the functionality had to be handled by the `Timer` component instead
+<sup>1</sup> To avoid some annoying re-rendering bugs encountered, a small part of the functionality had to be handled by the `Timer` component instead
 
 While AWS was suggested for deployment, quite late in development I encountered problems running tRPC on lambda, so had to fallback to a simpler setup with Render instead.
 
