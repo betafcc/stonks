@@ -119,7 +119,7 @@ The Stack used:
 
 The main files to understand the logic of the app are:
 
-- [backend/service.ts](backend/service.ts) - all the backend actual functionality
+- [backend/service.ts](backend/service.ts) - all the backend business logic
 - [backend/db/schema.ts](backend/db/schema.ts) - the schema, defining `users` and `bets` models
 - [frontend/hooks/app.ts](frontend/hooks/app.ts) - the whole logic of the frontend <sup>1</sup>, in a more-or-less redux style (is more based on a 'TEA' and a bit cqrs/es inspired architecture)
 
