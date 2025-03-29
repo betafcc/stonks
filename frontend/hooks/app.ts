@@ -182,26 +182,31 @@ export const useApp = (initialState?: Partial<State>) => {
     if (localStorage.getItem('token')) {
       ;(async () => {
         // TODO: refactor to a `init` function
-        api.getUser.query().then(user => dispatch({ type: 'logged-in', user }))
-        const activeBet = await api.getActiveBet.query()
+        try {
+          const user = await api.getUser.query()
+          const activeBet = await api.getActiveBet.query()
 
-        if (activeBet) {
-          dispatch({ type: 'got-bet', bet: activeBet })
+          dispatch({ type: 'logged-in', user })
 
-          if (+new Date(activeBet.initialTime) + 60 * 1000 < Date.now()) {
-            // if activeBet is already 1 minute old, request result
-            await command.current.retrieveBetResult(activeBet)
+          if (activeBet) {
+            dispatch({ type: 'got-bet', bet: activeBet })
+
+            if (+new Date(activeBet.initialTime) + 60 * 1000 < Date.now())
+              // if activeBet is already 1 minute old, request result
+              await command.current.retrieveBetResult(activeBet)
           }
+
+          // prefetch history
+          api.getHistory
+            .query()
+            .then(history => dispatch({ type: 'got-history', history }))
+
+          // prefetch rank
+          // NOTE: fix call duplication when active bet is already 1 minute old
+          api.getRank.query().then(rank => dispatch({ type: 'got-rank', rank }))
+        } catch {
+          localStorage.removeItem('token')
         }
-
-        // prefetch history
-        api.getHistory
-          .query()
-          .then(history => dispatch({ type: 'got-history', history }))
-
-        // prefetch rank
-        // NOTE: fix call duplication when active bet is already 1 minute old
-        api.getRank.query().then(rank => dispatch({ type: 'got-rank', rank }))
       })()
     }
   }, [])
