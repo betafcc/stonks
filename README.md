@@ -17,7 +17,7 @@
 
 <div align="center">
 
-STONKS! is live at https://stonks-1-c1fb.onrender.com
+STONKS! is live at https://https://dpptq9hs2n2n4.cloudfront.net
 
 
 <br>
@@ -47,7 +47,7 @@ Setup the database:
 ```bash
 docker compose --env-file ./backend/.env.development up -d
 cd backend
-bun run db:push # sync the schema, only needed once
+NODE_ENV=development bun run db:push # sync the schema, only needed once
 ```
 
 Run frontend + backend:

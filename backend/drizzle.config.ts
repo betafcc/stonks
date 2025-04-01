@@ -10,7 +10,7 @@ export default defineConfig({
     user: env.DB_USER,
     password: env.DB_PASSWORD,
     database: env.DB_NAME,
-    ssl: false,
+    ssl: env.NODE_ENV === 'production' ? 'allow' : false,
   },
   verbose: true,
   strict: false,
