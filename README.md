@@ -17,7 +17,7 @@
 
 <div align="center">
 
-STONKS! is live at https://https://dpptq9hs2n2n4.cloudfront.net
+STONKS! is live at https://dpptq9hs2n2n4.cloudfront.net
 
 
 <br>
