@@ -2,7 +2,10 @@ services:
   db:
     image: postgres:16.3
     restart: always
-    env_file: '.env.development'
+    environment:
+      POSTGRES_USER: '${DB_USER}'
+      POSTGRES_PASSWORD: '${DB_PASSWORD}'
+      POSTGRES_DB: '${DB_NAME}'
     volumes:
       - ./postgres-data:/var/lib/postgresql/data
     ports:

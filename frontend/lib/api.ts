@@ -4,7 +4,13 @@ import type { Router } from '../../backend/router'
 export const api = createTRPCClient<Router>({
   links: [
     httpBatchLink({
-      url: 'http://localhost:3001',
+      url: process.env.NEXT_PUBLIC_API_URL!,
+      // fetch(url, options) {
+      //   return fetch(url, {
+      //     ...options,
+      //     credentials: 'include',
+      //   })
+      // },
       async headers() {
         const token = window?.localStorage.getItem('token')
         if (token)

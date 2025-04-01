@@ -45,10 +45,9 @@ bun install
 Setup the database:
 
 ```bash
+docker compose --env-file ./backend/.env.development up -d
 cd backend
-cp .env.development .env
-docker compose up -d
-bun run db:push # sync the schema
+bun run db:push # sync the schema, only needed once
 ```
 
 Run frontend + backend:

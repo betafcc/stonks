@@ -121,12 +121,18 @@ export default function Page() {
         </div>
         <div className="flex min-w-40 max-w-40 flex-col border-l bg-muted/40 py-0 gap-4">
           <LiveTicker />
-          <GameControls command={command} state={state} />
+          {state.user ? (
+            <GameControls command={command} state={state} />
+          ) : (
+            <p className="text-center">Sign up to play</p>
+          )}
         </div>
       </div>
       <footer className="flex h-8 items-center justify-between border-t px-4 md:px-6">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold">Copyright © 1969-2025 Stonks of America, Inc.</h2>
+          <h2 className="text-sm font-semibold">
+            Copyright © 1969-2025 Stonks of America, Inc.
+          </h2>
         </div>
       </footer>
     </div>

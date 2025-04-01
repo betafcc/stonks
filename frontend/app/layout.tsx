@@ -64,7 +64,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased touch-manipulation`}
       >
-        <GoogleOAuthProvider clientId="889997800293-fikcmtjenq3m21uvi2unsdsmd8pujgkn.apps.googleusercontent.com">
+        <GoogleOAuthProvider
+          clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}
+        >
           <ThemeProvider
             attribute="class"
             defaultTheme="system"

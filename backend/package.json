@@ -3,9 +3,15 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
-    "dev": "bun --watch ./express-server.ts",
+    "dev": "NODE_ENV=development bun --watch ./express-server.ts",
     "db:studio": "drizzle-kit studio",
-    "db:push": "drizzle-kit push"
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed": "DB_SEEDING=true bun run ./backend/db/seed.ts",
+    "clean": "rm -f handler.mjs handler.zip",
+    "prebuild": "bun run clean",
+    "build": "bun build --target=node lambda-server.ts --outfile handler.mjs"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.148",
@@ -25,8 +31,8 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "common": "workspace:*",
     "@trpc/server": "^11.0.0",
-    "common": "*",
     "cookies": "^0.9.1",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.41.0",

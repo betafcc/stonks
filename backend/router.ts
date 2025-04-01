@@ -1,10 +1,21 @@
 import { z } from 'zod'
 import { initTRPC, TRPCError, type inferRouterOutputs } from '@trpc/server'
+import jwt, { type JwtPayload } from 'jsonwebtoken'
+
 import * as schema from './db/schema'
 import * as service from './service'
 
 export type Context = {
   user?: typeof schema.users.$inferSelect
+}
+
+export const createContext = async (options: { token?: string }) => {
+  if (!options.token) return {}
+
+  const decoded = jwt.verify(options.token, 'secret') as JwtPayload
+  return {
+    user: await service.getUserById(decoded.id),
+  }
 }
 
 export type Router = typeof router
@@ -14,6 +25,8 @@ export type RouterOutputs = inferRouterOutputs<Router>
 const t = initTRPC.context<Context>().create()
 
 export const router = t.router({
+  health: t.procedure.query(() => 'ok'),
+
   login: t.procedure
     .input(z.object({ credential: z.string() }))
     .mutation(({ input, ctx: { user } }) => service.login(input)),

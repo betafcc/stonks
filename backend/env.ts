@@ -1,19 +1,32 @@
+import { config } from 'dotenv'
 import { ZodError, z } from 'zod'
 
-// const stringBoolean = z.coerce
-//   .string()
-//   .transform(val => val === 'true')
-//   .default('false')
+import path from 'node:path'
+
+const stringBoolean = z.coerce
+  .string()
+  .transform(val => val === 'true')
+  .default('false')
 
 const EnvSchema = z.object({
-  NODE_ENV: z.string().default('development'),
-  DATABASE_URL: z.string(),
-  // POSTGRES_MIGRATING: stringBoolean,
-  // POSTGRES_SEEDING: stringBoolean,
+  NODE_ENV: z.string().default('production'),
+  DB_HOST: z.string(),
+  DB_PORT: z.string().transform(val => parseInt(val, 10)),
+  DB_USER: z.string(),
+  DB_PASSWORD: z.string(),
+  DB_NAME: z.string(),
+  DB_MIGRATING: stringBoolean,
+  DB_SEEDING: stringBoolean,
 })
 
 export type Env = z.infer<typeof EnvSchema>
 
+const file =
+  process.env.NODE_ENV === 'production' || !process.env.NODE_ENV
+    ? '.env'
+    : '.env.' + process.env.NODE_ENV
+
+config({ path: path.resolve(__dirname, file) })
 
 export const env: Env = (() => {
   try {
