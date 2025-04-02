@@ -156,7 +156,7 @@ export const retrieveBetResult = async (input: {
   const price = await fetchFirstPriceChange({
     symbol: bet.symbol,
     value: bet.initial,
-    timestamp: +new Date(bet.initialTime),
+    timestamp: +new Date(minFinalTime),
   })
 
   // TODO: wrap rest in transaction
